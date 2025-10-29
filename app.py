@@ -5,19 +5,22 @@ from flask import Flask, request, render_template, jsonify, send_file, abort
 from dotenv import load_dotenv
 import requests
 from docxtpl import DocxTemplate
-from jinja2 import Environment  # <-- NEW: for template var discovery
+from jinja2 import Environment
 from num2words import num2words
 
-# Load .env from this folder
-load_dotenv(dotenv_path=Path(__file__).with_name(".env"))
+# ──────────────────────────────────────────────────────────────────────────────
+# Load env next to this file (works locally and on Render)
+# ──────────────────────────────────────────────────────────────────────────────
+BASE_DIR = Path(__file__).parent
+load_dotenv(dotenv_path=BASE_DIR / ".env")
 
 app = Flask(__name__)
 
-# ─── Config from .env ─────────────────────────────────────────────────────────
+# ─── Config from env ──────────────────────────────────────────────────────────
 NOTION_TOKEN   = os.getenv("NOTION_TOKEN", "")
 REMITTER_DB    = os.getenv("REMITTER_DATABASE_ID", "")
 BENEFICIARY_DB = os.getenv("BENEFICIARY_DATABASE_ID", "")
-TT_TEMPLATE    = os.getenv("TT_TEMPLATE", "")          # absolute path to your TT DOCX
+TT_TEMPLATE_RAW = os.getenv("TT_TEMPLATE", "")     # relative or absolute; we resolve it
 PORT           = int(os.getenv("PORT", "5055"))
 
 NOTION_HEADERS = {
@@ -26,22 +29,36 @@ NOTION_HEADERS = {
     "Content-Type": "application/json",
 }
 
-# ─── Guards ───────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
+# Helpers: validate env + resolve template path
+# ──────────────────────────────────────────────────────────────────────────────
+def _template_path() -> Path:
+    """
+    Accept relative ('TT_Form_template.docx') or absolute path.
+    Resolve to an absolute Path and ensure it exists.
+    """
+    raw = TT_TEMPLATE_RAW.strip()
+    if not raw:
+        raise RuntimeError("TT_TEMPLATE missing.")
+    p = Path(raw)
+    if not p.is_absolute():
+        p = (BASE_DIR / p).resolve()
+    if not p.exists():
+        raise RuntimeError(f"Template not found: {p}")
+    return p
+
 def _assert_env():
     if not NOTION_TOKEN:
-        raise RuntimeError("NOTION_TOKEN missing in .env")
+        raise RuntimeError("NOTION_TOKEN missing.")
     if not (NOTION_TOKEN.startswith("secret_") or NOTION_TOKEN.startswith("ntn_")):
-        raise RuntimeError("NOTION_TOKEN must start with 'secret_' or 'ntn_'")
+        raise RuntimeError("NOTION_TOKEN must start with 'secret_' or 'ntn_'.")
     if len(REMITTER_DB) != 32 or len(BENEFICIARY_DB) != 32:
-        raise RuntimeError("Database IDs must be 32 chars (no dashes)")
-    if not TT_TEMPLATE:
-        raise RuntimeError("TT_TEMPLATE missing in .env")
-    if not os.path.isabs(TT_TEMPLATE):
-        raise RuntimeError("TT_TEMPLATE must be an absolute path")
-    if not os.path.exists(TT_TEMPLATE):
-        raise RuntimeError(f"Template not found: {TT_TEMPLATE}")
+        raise RuntimeError("Database IDs must be 32 characters (no dashes).")
+    _ = _template_path()  # validates and resolves
 
-# ─── Notion helpers ───────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
+# Notion utilities
+# ──────────────────────────────────────────────────────────────────────────────
 def notion_get_database(dbid: str) -> Dict[str, Any]:
     r = requests.get(f"https://api.notion.com/v1/databases/{dbid}", headers=NOTION_HEADERS, timeout=30)
     if r.status_code == 404:
@@ -133,25 +150,66 @@ def build_beneficiary_properties(row: Dict[str, Any], title_prop: str) -> Dict[s
     props["Intermediary Bank SWIFT"]    = r("intermediary_bank_swift")
     return props
 
-# ─── Template utilities (version-safe) ────────────────────────────────────────
-def list_template_vars(docx_path: str) -> List[str]:
-    """
-    Return the set of undeclared variables found in the DOCX template, in a
-    version-safe way across docxtpl releases.
-    """
-    tpl = DocxTemplate(docx_path)
+# ──────────────────────────────────────────────────────────────────────────────
+# Template utilities (version-safe missing var detection)
+# ──────────────────────────────────────────────────────────────────────────────
+def list_template_vars(docx_path: Path) -> List[str]:
+    tpl = DocxTemplate(str(docx_path))
     try:
-        # Older docxtpl: requires a Jinja2 Environment argument
         env = Environment()
         return sorted(list(tpl.get_undeclared_template_variables(env)))
     except TypeError:
-        # Newer docxtpl variants may not require env
         return sorted(list(tpl.get_undeclared_template_variables()))
     except Exception:
-        # As a last resort, don't crash the app; report empty list
         return []
 
-# ─── UI ───────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
+# Amount-in-words helpers
+# ──────────────────────────────────────────────────────────────────────────────
+def amount_to_words(amount_str: str, currency_code: str = "USD") -> str:
+    if not amount_str:
+        return ""
+    s = amount_str.strip().replace(",", "")
+    try:
+        parts = s.split(".")
+        major = int(parts[0]) if parts[0] else 0
+        minor = int((parts[1] + "00")[:2]) if len(parts) > 1 and parts[1].isdigit() else 0
+    except Exception:
+        return ""
+
+    lang = "en_IN" if currency_code.upper() == "INR" else "en"
+    major_words = num2words(major, to="cardinal", lang=lang).replace("-", " ")
+    minor_words = num2words(minor, to="cardinal", lang=lang).replace("-", " ") if minor else ""
+
+    cur = currency_code.upper()
+    if cur == "INR":
+        major_unit = "Rupee" if major == 1 else "Rupees"
+        minor_unit = "Paisa" if minor == 1 else "Paise"
+    elif cur in ("USD","CAD","AUD","NZD","SGD","HKD"):
+        major_unit = "Dollar" if major == 1 else "Dollars"
+        minor_unit = "Cent" if minor == 1 else "Cents"
+    elif cur == "EUR":
+        major_unit = "Euro" if major == 1 else "Euros"
+        minor_unit = "Cent" if minor == 1 else "Cents"
+    elif cur == "GBP":
+        major_unit = "Pound" if major == 1 else "Pounds"
+        minor_unit = "Pence"
+    elif cur in ("AED","SAR","QAR","OMR","BHD","KWD"):
+        major_unit = "Dirham" if cur == "AED" else ("Rial" if cur in ("SAR","QAR","OMR") else "Dinar")
+        minor_unit = "Fils"
+    else:
+        major_unit, minor_unit = "", ""
+
+    if minor and minor_unit:
+        return f"{major_words.title()} {major_unit} And {minor_words.title()} {minor_unit} Only"
+    if major_unit:
+        return f"{major_words.title()} {major_unit} Only"
+    # generic fallback
+    return f"{major_words.title()} Only" if not minor else f"{major_words.title()} Point {minor_words.title()} Only"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# UI
+# ──────────────────────────────────────────────────────────────────────────────
 @app.get("/")
 def ui_home():
     try:
@@ -160,7 +218,9 @@ def ui_home():
         return render_template("index.html", env_error=str(e))
     return render_template("index.html", env_error=None)
 
-# ─── API: load options / read / upsert ────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
+# API: load options / read / upsert
+# ──────────────────────────────────────────────────────────────────────────────
 @app.get("/api/options")
 def api_options():
     _assert_env()
@@ -220,7 +280,9 @@ def api_upsert(rtype):
         return jsonify({"ok": False, "error": res.text, "status": res.status_code}), 400
     return jsonify({"ok": True, "page": res.json()})
 
-# ─── API: generate DOCX (download / overwrite / save to path) ────────────────
+# ──────────────────────────────────────────────────────────────────────────────
+# API: generate DOCX (download / overwrite / save to path)
+# ──────────────────────────────────────────────────────────────────────────────
 @app.post("/generate")
 def generate():
     try:
@@ -233,17 +295,9 @@ def generate():
     remitter    = data.get("remitter", {})
     extra       = data.get("extra", {})
 
-    amount_figures = extra.get("amount_figures", "")
-    amount_figures_text = ""
-    if amount_figures:
-        try:
-            # Convert to words safely
-            amt = float(amount_figures.replace(",", "").strip())
-            amount_figures_text = num2words(amt, to="cardinal", lang="en").replace("-", " ")
-            # Capitalize nicely
-            amount_figures_text = amount_figures_text.title() + " Only"
-        except Exception:
-            amount_figures_text = ""
+    currency       = (extra.get("currency") or "USD").strip().upper()
+    amount_figures = (extra.get("amount_figures") or "").strip()
+    amount_figures_text = amount_to_words(amount_figures, currency)
 
     ctx = {
         # Beneficiary
@@ -267,27 +321,23 @@ def generate():
         "remitter_id_value": remitter.get("id_value",""),
         # TT extras
         "date": extra.get("date") or str(datetime.date.today()),
-        "currency": extra.get("currency","USD"),
+        "currency": currency,
         "amount_figures": amount_figures,
-        "amount_figures_text": amount_figures_text,   # <-- NEW FIELD
+        "amount_figures_text": amount_figures_text,   # used by template
         "charges": extra.get("charges","SHA"),
         "account_to_be_debited_number_currency": extra.get("account_to_be_debited_number_currency",""),
         "notes": extra.get("notes",""),
     }
 
     try:
-        tpl = DocxTemplate(TT_TEMPLATE)
+        tpl_path = _template_path()
+        tpl = DocxTemplate(str(tpl_path))
 
-        # VERSION-SAFE missing-vars check
-        missing = list_template_vars(TT_TEMPLATE)  # template placeholders
-        # remove those keys present in ctx (if present, they're not "missing")
-        missing = [m for m in missing if m not in ctx]
+        # Optional: show missing template vars not present in ctx
+        wanted = list_template_vars(tpl_path)
+        missing = [m for m in wanted if m not in ctx]
         if missing:
-            return {
-                "ok": False,
-                "error": "Missing variables in context for this template.",
-                "missing_variables": sorted(missing)
-            }, 400
+            return {"ok": False, "error": "Missing variables for template", "missing_variables": missing}, 400
 
         tpl.render(ctx)
 
@@ -295,14 +345,16 @@ def generate():
         out_path  = extra.get("out_path")
 
         if overwrite:
-            tpl.save(TT_TEMPLATE)
-            return {"ok": True, "message": f"Overwrote template: {TT_TEMPLATE}"}
+            tpl.save(str(tpl_path))
+            return {"ok": True, "message": f"Overwrote template: {tpl_path}"}
 
         if out_path:
-            if not os.path.isabs(out_path):
-                return {"ok": False, "error": "out_path must be an absolute path"}, 400
-            tpl.save(out_path)
-            return {"ok": True, "message": f"Saved to: {out_path}"}
+            out_p = Path(out_path)
+            if not out_p.is_absolute():
+                out_p = (BASE_DIR / out_p).resolve()
+            out_p.parent.mkdir(parents=True, exist_ok=True)
+            tpl.save(str(out_p))
+            return {"ok": True, "message": f"Saved to: {out_p}"}
 
         buf = io.BytesIO()
         tpl.save(buf)
@@ -317,20 +369,43 @@ def generate():
         print("TEMPLATE ERROR:\n", traceback.format_exc())
         return {"ok": False, "error": f"{type(e).__name__}: {e}"}, 500
 
-# ─── Debug helpers ────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────
+# Debug helpers
+# ──────────────────────────────────────────────────────────────────────────────
 @app.get("/debug/template")
 def debug_template():
     try:
         _assert_env()
-        wanted = list_template_vars(TT_TEMPLATE)
-        return jsonify({"ok": True, "template": TT_TEMPLATE, "expects": wanted})
+        p = _template_path()
+        wanted = list_template_vars(p)
+        return jsonify({"ok": True, "template": str(p), "expects": wanted})
     except Exception as e:
         return jsonify({"ok": False, "error": f"{type(e).__name__}: {e}"}), 400
 
-# ─── UI template ──────────────────────────────────────────────────────────────
-@app.get("/ui")
-def ui_redirect():
-    return render_template("index.html", env_error=None)
+@app.get("/debug/env")
+def debug_env():
+    try:
+        p = _template_path()
+        tpl_exists = p.exists()
+        tpl_str = str(p)
+    except Exception:
+        tpl_exists = False
+        tpl_str = TT_TEMPLATE_RAW
+    return {
+        "token_prefix": (NOTION_TOKEN[:6]+"...") if NOTION_TOKEN else None,
+        "rem_db_len": len(REMITTER_DB),
+        "ben_db_len": len(BENEFICIARY_DB),
+        "template_env": TT_TEMPLATE_RAW,
+        "template_resolved": tpl_str,
+        "template_exists": tpl_exists
+    }
 
+@app.get("/healthz")
+def healthz():
+    return {"ok": True}, 200
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Entrypoint
+# ──────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=PORT, debug=True)
