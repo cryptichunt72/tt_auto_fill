@@ -23,10 +23,21 @@ NOTION_HEADERS = {
 }
 
 def _assert_env():
-    if not NOTION_TOKEN.startswith("ntn_"):
-        raise RuntimeError("Set NOTION_TOKEN for an internal integration (starts with 'ntn_').")
-    if len(REMITTER_DB) < 30 or len(BENEFICIARY_DB) < 30:
-        raise RuntimeError("Set both REMITTER_DATABASE_ID and BENEFICIARY_DATABASE_ID as 32-char IDs (no dashes).")
+    tok = os.getenv("NOTION_TOKEN", "")
+    if not tok:
+        raise RuntimeError("NOTION_TOKEN missing. Add it in Render → Environment.")
+    # accept both formats
+    if not (tok.startswith("secret_") or tok.startswith("ntn_")):
+        raise RuntimeError("NOTION_TOKEN must start with 'secret_' or 'ntn_'")
+
+    rem = os.getenv("REMITTER_DATABASE_ID", "")
+    ben = os.getenv("BENEFICIARY_DATABASE_ID", "")
+    if len(rem) != 32 or len(ben) != 32:
+        raise RuntimeError("Database IDs must be 32 characters (no dashes)")
+    tpl = os.getenv("TT_TEMPLATE", "")
+    if not tpl:
+        raise RuntimeError("TT_TEMPLATE missing")
+
 
 def notion_get_database(dbid: str) -> Dict[str, Any]:
     r = requests.get(f"https://api.notion.com/v1/databases/{dbid}", headers=NOTION_HEADERS, timeout=30)
