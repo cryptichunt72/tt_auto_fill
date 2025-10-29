@@ -23,8 +23,8 @@ NOTION_HEADERS = {
 }
 
 def _assert_env():
-    if not NOTION_TOKEN.startswith("secret_"):
-        raise RuntimeError("Set NOTION_TOKEN for an internal integration (starts with 'secret_').")
+    if not NOTION_TOKEN.startswith("ntn_"):
+        raise RuntimeError("Set NOTION_TOKEN for an internal integration (starts with 'ntn_').")
     if len(REMITTER_DB) < 30 or len(BENEFICIARY_DB) < 30:
         raise RuntimeError("Set both REMITTER_DATABASE_ID and BENEFICIARY_DATABASE_ID as 32-char IDs (no dashes).")
 
