@@ -338,8 +338,8 @@ def generate():
         missing = [m for m in wanted if m not in ctx]
         if missing:
             return {"ok": False, "error": "Missing variables for template", "missing_variables": missing}, 400
-
-        tpl.render(ctx)
+        ctx_upper = {k.upper(): v for k, v in ctx.items()}
+        tpl.render({**ctx, **ctx_upper})
 
         overwrite = bool(extra.get("overwrite"))
         out_path  = extra.get("out_path")
