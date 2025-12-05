@@ -1,0 +1,7 @@
+Flask==3.0.3
+gunicorn==22.0.0
+python-dotenv==1.0.1
+requests==2.32.3
+docxtpl==0.16.7
+num2words==0.5.13
+Jinja2==3.1.4
