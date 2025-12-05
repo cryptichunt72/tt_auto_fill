@@ -8,7 +8,7 @@ from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
 from jinja2 import Environment
 from num2words import num2words
-from invoice_app import invoice_bp
+
 
 
 
