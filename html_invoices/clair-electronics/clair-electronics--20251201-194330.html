@@ -1,0 +1,88 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Invoice</title><style>body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0;  color:#000; } .invoice { width: 960px; margin: auto; border: 1px solid #999; border-radius: 6px; } .inv-header { display: flex; justify-content: space-between; padding: 20px; border-bottom: 1px solid #999; } .inv-meta { padding: 10px; } .inv-parties { display: flex; justify-content: space-between; padding: 10px; } .party { width: 48%; } .inv-category { text-align: center; text-transform: uppercase; margin: 20px 0; } .inv-items { padding: 10px; } .items { width: 100%; border-collapse: collapse; } .items th, .items td { border: 1px solid #999; padding: 8px; text-align: left; } .items th { text-transform: uppercase; } .num { text-align: right; } .total-row { font-weight: bold; } .inv-bank { padding: 10px; border-top: 1px solid #999; } .title { font-weight: bold; margin-bottom: 10px; } @media print { body { margin: 0; } @page { margin: 20mm; } } </style><style id="center-override">
+  body, .invoice, header, main, section, table, th, td { text-align: center !important; }
+</style>
+
+<style id="design-override">
+  /* Global type & rhythm */
+  body {
+    font-family:system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif !important;
+    font-size:12px !important;
+    line-height:1.45 !important;
+    letter-spacing:0.6px !important;
+    word-spacing:0.0px !important;
+    color:#000 !important;
+    text-align:center !important;
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    
+  }
+  .invoice {
+    max-width:960px !important; margin:24px auto !important; padding:8px 16px !important;
+    border-radius:6px !important;
+  }
+
+  /* Header */
+  .inv-header h1, .inv-header .title {
+    font-weight:700; font-size:20px; 
+    margin:0 0 6px 0;
+  }
+  .inv-header .company, .inv-header address { font-size:11px; }
+
+  /* Meta grid */
+  .inv-meta {
+    display:grid; gap:8px 16px; margin:14px 0 10px 0; padding:10px 12px;
+    border:1.5px solid #444; border-radius:4px;
+    grid-template-columns: repeat( auto-fit, minmax(180px, 1fr) );
+  }
+  .inv-meta .label { font-weight:600; }
+
+  /* Parties */
+  .inv-parties { display:grid; gap:12px; grid-template-columns: repeat( auto-fit, minmax(280px, 1fr) ); margin:8px 0 6px; }
+  .inv-parties .party {
+    border:1.5px solid #444; border-radius:4px; padding:10px 12px;
+  }
+  .inv-parties .party .heading { font-weight:600; margin-bottom:4px; }
+
+  /* Category */
+  .inv-category { margin:12px 0 6px; font-weight:700; text-transform:uppercase; }
+
+  /* Table */
+  table.items { width:100%; border-collapse:collapse; }
+  table.items thead th {
+    border-bottom:1.5px solid #444; padding:6px 10px; font-weight:700; text-align:left;
+  }
+  table.items td { padding:6px 10px; border-bottom:0.5px solid #999; }
+  table.items td.num, table.items th.num { text-align:right; }
+  table.items tfoot .total-row th, table.items tfoot .total-row td {
+    border-top:1.5px solid #444; padding:8px 10px; font-weight:700;
+  }
+
+  /* Bank block */
+  .inv-bank {
+    margin-top:16px; padding:10px 12px; border:1.5px solid #444; border-radius:4px;
+  }
+  .inv-bank .title { font-weight:700; margin-bottom:6px; }
+  .inv-bank dl { display:grid; grid-template-columns:160px 1fr; gap:6px 12px; margin:0; }
+  .inv-bank dt { font-weight:600; }
+  .inv-bank dd { margin:0; }
+
+  /* Print */
+  @page { margin: 14mm 12mm; }
+  @media print {
+    body { margin:0 !important; }
+    .invoice {  }
+    thead { display:table-header-group; }
+    tfoot { display:table-footer-group; }
+    tr, img { page-break-inside: avoid !important; }
+  }
+</style>
+
+<style id="bw-enforcer">
+  html,body{background:#fff!important;color:#000!important;}
+  *{box-shadow:none!important;text-shadow:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  a, a:visited{color:#000!important;}
+  svg *{fill:#000!important;stroke:#000!important;}
+  table tr:nth-child(even){background:rgba(0,0,0,0.12)!important;}
+</style>
+</head><body><div class="invoice"><header class="inv-header"><div>Clair Electronics</div><div>PROFORMA INVOICE</div></header><section class="inv-meta"><div>PI No: </div><div>Date: </div><div>Shipment: </div><div>Port Loading: </div><div>Port Discharge: </div></section><section class="inv-parties"><div class="party buyer"><strong>Buyer:</strong><br><br></div><div class="party notify"><strong>Notify:</strong><br><br></div></section><h3 class="inv-category"></h3><section class="inv-items"><table class="items"><colgroup><col style="width:7%"><col style="width:20%"><col style="width:33%"><col style="width:14%"><col style="width:13%"><col style="width:13%"></colgroup><thead><tr><th>SL.NO</th><th>ITEM NO.</th><th>DESCRIPTION</th><th>QUANTITY (NOS)</th><th>RATE (CIF CHENNAI)</th><th>TOTAL AMOUNT</th></tr></thead><tbody><tr><td>1</td><td>CL001LED</td><td>LED Bulb 9W Cool White B22</td><td class="num">36 NOS</td><td class="num">25.00</td><td class="num">900.00</td></tr><tr><td>2</td><td>CL002TL</td><td>LED Tube Light 20W Cool White 4ft T5</td><td class="num">14 NOS</td><td class="num">100.00</td><td class="num">1400.00</td></tr><tr><td>3</td><td>CL003PL</td><td>LED Panel Light 2x2 feet 40W Cool White</td><td class="num">3 NOS</td><td class="num">1250.00</td><td class="num">3750.00</td></tr><tr><td>4</td><td>CL004DL</td><td>LED Downlight 12W Round Cool White Recessed</td><td class="num">10 NOS</td><td class="num">120.00</td><td class="num">1200.00</td></tr><tr><td>5</td><td>CL005STL</td><td>LED Street Light 50W Cool White IP66 Aluminium</td><td class="num">2 NOS</td><td class="num">650.00</td><td class="num">1300.00</td></tr><tr><td>6</td><td>CL006DECO</td><td>LED Surface Panel Light 15W Round Warm White</td><td class="num">26 NOS</td><td class="num">55.00</td><td class="num">1430.00</td></tr><tr><td colspan="6" style="height:18px;"></td></tr></tbody><tfoot><tr class="total-row"><th colspan="5" class="label">TOTAL</th><th class="num">9980.00</th></tr></tfoot></table></section><section class="inv-bank"><div class="title">Bank Details</div><dl><dt>Account Name</dt><dd></dd><dt>Account Address</dt><dd></dd><dt>Account No</dt><dd></dd><dt>Bank Name</dt><dd></dd><dt>Bank Branch Address</dt><dd></dd><dt>SWIFT</dt><dd></dd></dl></section></div>
+<span style="display:none">C-632 New Friends Colony</span>
+</body></html>

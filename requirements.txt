@@ -1,0 +1,23 @@
+Flask==3.0.3
+gunicorn==22.0.0
+python-dotenv==1.0.1
+requests==2.32.3
+docxtpl==0.16.7
+num2words==0.5.13
+Jinja2==3.1.4
+
+# --- OpenAI Python SDK ---
+openai==1.51.0
+
+# --- Google Gemini Python SDK (official) ---
+google-genai==0.7.0
+
+# --- Optional utilities matching your imports ---
+# pathlib, hashlib, json, html, datetime, re, decimal are part of Python stdlib
+# No package needed for them.
+
+# --- Concurrency ---
+# ThreadPoolExecutor comes from Python stdlib, no package required.
+
+# --- If using typing with Pydantic-style validation (not required now, but safe) ---
+typing-extensions==4.12.2
