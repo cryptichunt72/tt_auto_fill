@@ -11,7 +11,6 @@ from num2words import num2words
 
 
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Load env next to this file (works locally and on Render)
 # ──────────────────────────────────────────────────────────────────────────────
@@ -19,7 +18,6 @@ BASE_DIR = Path(__file__).parent
 load_dotenv(dotenv_path=BASE_DIR / ".env")
 
 app = Flask(__name__)
-
 
 # ─── Config from env ──────────────────────────────────────────────────────────
 NOTION_TOKEN   = os.getenv("NOTION_TOKEN", "")
@@ -157,6 +155,9 @@ def parse_beneficiary(page: Dict[str, Any], t: str) -> Dict[str, Any]:
         "intermediary_bank_name": get_rich(p.get("Intermediary Bank Name", {})),
         "intermediary_bank_address": get_rich(p.get("Intermediary Bank Address", {})),
         "intermediary_bank_swift": get_rich(p.get("Intermediary Bank SWIFT", {})),
+        # NEW
+        "ifsc_code": get_rich(p.get("IFSC Code", {})),
+        "routing_code": get_rich(p.get("Routing Code", {})),
     }
 
 def _title(v):  return {"title": [{"text": {"content": str(v)}}]}
@@ -194,7 +195,13 @@ def build_beneficiary_properties(row: Dict[str, Any], title_prop: str) -> Dict[s
     props["Intermediary Bank Name"]     = r("intermediary_bank_name")
     props["Intermediary Bank Address"]  = r("intermediary_bank_address")
     props["Intermediary Bank SWIFT"]    = r("intermediary_bank_swift")
+
+    # NEW: IFSC + Routing Code
+    props["IFSC Code"]   = r("ifsc_code")
+    props["Routing Code"] = r("routing_code")
+
     return props
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Template utilities (version-safe missing var detection) + signature helpers
@@ -391,7 +398,16 @@ def api_upsert(rtype):
     # (we still selectively handle numbers below)
     def upper_body(obj):
         if isinstance(obj, dict):
-            return {k: (v.upper() if isinstance(v, str) else v) for k, v in obj.items()}
+            new = {}
+            for k, v in obj.items():
+                if k == "id":
+                    # don't touch the Notion page ID
+                    new[k] = v
+                elif isinstance(v, str):
+                    new[k] = v.upper()
+                else:
+                    new[k] = v
+            return new
         return obj
 
     body = upper_body(body)
@@ -477,6 +493,11 @@ def generate():
         "charges": upper(extra.get("charges","SHA")),
         "account_to_be_debited_number_currency": upper(extra.get("account_to_be_debited_number_currency","")),
         "notes": upper(extra.get("notes","")),
+                # (optional) extra banking codes for template
+        "beneficiary_ifsc_code": upper(beneficiary.get("ifsc_code","")),
+        "beneficiary_routing_code": upper(beneficiary.get("routing_code","")),
+
+
     }
 
     try:
