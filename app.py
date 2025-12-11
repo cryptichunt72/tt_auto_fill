@@ -463,6 +463,7 @@ def generate():
     currency       = (extra.get("currency") or "USD").strip().upper()
     amount_figures = (extra.get("amount_figures") or "").strip()
     amount_figures_text = upper(amount_to_words(amount_figures, currency))
+    is_inr = (currency == "INR")
 
     # Build context, uppercasing all textual user-entered data
     ctx = {
@@ -478,6 +479,12 @@ def generate():
         "intermediary_bank_name": upper(beneficiary.get("intermediary_bank_name","")),
         "intermediary_bank_address": upper(beneficiary.get("intermediary_bank_address","")),
         "intermediary_bank_swift": upper(beneficiary.get("intermediary_bank_swift","")),
+
+        # IFSC & Routing – only populated for INR
+        "beneficiary_ifsc_code": upper(beneficiary.get("ifsc_code","")) if is_inr else "",
+        "beneficiary_routing_code": upper(beneficiary.get("routing_code","")) if is_inr else "",
+        "show_ifsc_routing": is_inr,
+
         # Remitter
         "remitter_name": upper(remitter.get("name","")),
         "remitter_account_no": remitter.get("account_no",""),
@@ -489,16 +496,12 @@ def generate():
         "date": extra.get("date") or str(datetime.date.today()),
         "currency": currency,
         "amount_figures": amount_figures,
-        "amount_figures_text": amount_figures_text,   # auto-generated words (kept as title case)
+        "amount_figures_text": amount_figures_text,
         "charges": upper(extra.get("charges","SHA")),
         "account_to_be_debited_number_currency": upper(extra.get("account_to_be_debited_number_currency","")),
         "notes": upper(extra.get("notes","")),
-                # (optional) extra banking codes for template
-        "beneficiary_ifsc_code": upper(beneficiary.get("ifsc_code","")),
-        "beneficiary_routing_code": upper(beneficiary.get("routing_code","")),
-
-
     }
+
 
     try:
         tpl_path = _template_path()
