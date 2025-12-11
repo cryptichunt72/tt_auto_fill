@@ -267,29 +267,37 @@
     }
 
     function beneficiaryFields(data={}){
-      return el("div", {class:"row"}, [
-        el("div", {}, [ el("label",{text:"Beneficiary Name"}), el("input",{id:"b_beneficiary_name", value:data.beneficiary_name||"", placeholder:"Company / Person"}) ]),
-        el("div", {}, [ el("label",{text:"Beneficiary Account Number"}), el("input",{id:"b_beneficiary_account_number", value:data.beneficiary_account_number||"", placeholder:"IBAN / Account No"}) ]),
-        el("div", {}, [ el("label",{text:"Beneficiary Address"}), el("textarea",{id:"b_beneficiary_address", value:data.beneficiary_address||"", placeholder:"Street, City, ZIP"}) ]),
-        el("div", {class:"row row-2"}, [
-          el("div", {}, [ el("label",{text:"Beneficiary Country"}), el("input",{id:"b_beneficiary_country", value:data.beneficiary_country||"", placeholder:"e.g. USA"}) ]),
-          el("div", {}, [ el("label",{text:"Beneficiary Bank Name"}), el("input",{id:"b_beneficiary_bank_name", value:data.beneficiary_bank_name||"", placeholder:"Bank name"}) ])
-        ]),
-        el("div", {class:"row row-2"}, [
-          el("div", {}, [ el("label",{text:"Beneficiary Bank Address"}), el("input",{id:"b_beneficiary_bank_address", value:data.beneficiary_bank_address||"", placeholder:"Bank address"}) ]),
-          el("div", {}, [ el("label",{text:"Beneficiary Bank Country"}), el("input",{id:"b_beneficiary_bank_country", value:data.beneficiary_bank_country||"", placeholder:"e.g. USA"}) ])
-        ]),
-        el("div", {class:"row row-2"}, [
-          el("div", {}, [ el("label",{text:"Beneficiary Bank SWIFT"}), el("input",{id:"b_beneficiary_bank_swift", value:data.beneficiary_bank_swift||"", placeholder:"SWIFT/BIC"}) ]),
-          el("div", {}, [ el("label",{text:"Intermediary Bank Name"}), el("input",{id:"b_intermediary_bank_name", value:data.intermediary_bank_name||"", placeholder:"(optional)"}) ])
-        ]),
-        el("div", {class:"row row-2"}, [
-          el("div", {}, [ el("label",{text:"Intermediary Bank Address"}), el("input",{id:"b_intermediary_bank_address", value:data.intermediary_bank_address||"", placeholder:"(optional)"}) ]),
-          el("div", {}, [ el("label",{text:"Intermediary Bank SWIFT"}), el("input",{id:"b_intermediary_bank_swift", value:data.intermediary_bank_swift||"", placeholder:"(optional)"}) ])
-        ]),
-        el("input",{id:"b_id", type:"hidden", value:data.id||""})
-      ]);
-    }
+  return el("div", {class:"row"}, [
+    el("div", {}, [ el("label",{text:"Beneficiary Name"}), el("input",{id:"b_beneficiary_name", value:data.beneficiary_name||"", placeholder:"Company / Person"}) ]),
+    el("div", {}, [ el("label",{text:"Beneficiary Account Number"}), el("input",{id:"b_beneficiary_account_number", value:data.beneficiary_account_number||"", placeholder:"IBAN / Account No"}) ]),
+    el("div", {}, [ el("label",{text:"Beneficiary Address"}), el("textarea",{id:"b_beneficiary_address", value:data.beneficiary_address||"", placeholder:"Street, City, ZIP"}) ]),
+    el("div", {class:"row row-2"}, [
+      el("div", {}, [ el("label",{text:"Beneficiary Country"}), el("input",{id:"b_beneficiary_country", value:data.beneficiary_country||"", placeholder:"e.g. USA"}) ]),
+      el("div", {}, [ el("label",{text:"Beneficiary Bank Name"}), el("input",{id:"b_beneficiary_bank_name", value:data.beneficiary_bank_name||"", placeholder:"Bank name"}) ])
+    ]),
+    el("div", {class:"row row-2"}, [
+      el("div", {}, [ el("label",{text:"Beneficiary Bank Address"}), el("input",{id:"b_beneficiary_bank_address", value:data.beneficiary_bank_address||"", placeholder:"Bank address"}) ]),
+      el("div", {}, [ el("label",{text:"Beneficiary Bank Country"}), el("input",{id:"b_beneficiary_bank_country", value:data.beneficiary_bank_country||"", placeholder:"e.g. USA"}) ])
+    ]),
+    el("div", {class:"row row-2"}, [
+      el("div", {}, [ el("label",{text:"Beneficiary Bank SWIFT"}), el("input",{id:"b_beneficiary_bank_swift", value:data.beneficiary_bank_swift||"", placeholder:"SWIFT/BIC"}) ]),
+      el("div", {}, [ el("label",{text:"Intermediary Bank Name"}), el("input",{id:"b_intermediary_bank_name", value:data.intermediary_bank_name||"", placeholder:"(optional)"}) ])
+    ]),
+    el("div", {class:"row row-2"}, [
+      el("div", {}, [ el("label",{text:"Intermediary Bank Address"}), el("input",{id:"b_intermediary_bank_address", value:data.intermediary_bank_address||"", placeholder:"(optional)"}) ]),
+      el("div", {}, [ el("label",{text:"Intermediary Bank SWIFT"}), el("input",{id:"b_intermediary_bank_swift", value:data.intermediary_bank_swift||"", placeholder:"(optional)"}) ])
+    ]),
+
+    // NEW row for codes
+    el("div", {class:"row row-2"}, [
+      el("div", {}, [ el("label",{text:"IFSC Code"}), el("input",{id:"b_ifsc_code", value:data.ifsc_code||"", placeholder:"IFSC (for Indian banks)"}) ]),
+      el("div", {}, [ el("label",{text:"Routing Code"}), el("input",{id:"b_routing_code", value:data.routing_code||"", placeholder:"Routing Code"}) ])
+    ]),
+
+    el("input",{id:"b_id", type:"hidden", value:data.id||""})
+  ]);
+}
+
 
     async function loadOptions(){
       const r = await fetch("/api/options");
@@ -335,7 +343,9 @@
         beneficiary_bank_swift: document.getElementById("b_beneficiary_bank_swift").value,
         intermediary_bank_name: document.getElementById("b_intermediary_bank_name").value,
         intermediary_bank_address: document.getElementById("b_intermediary_bank_address").value,
-        intermediary_bank_swift: document.getElementById("b_intermediary_bank_swift").value
+        intermediary_bank_swift: document.getElementById("b_intermediary_bank_swift").value,
+        ifsc_code: document.getElementById("b_ifsc_code").value,
+        routing_code: document.getElementById("b_routing_code").value
       };
 
       const r = await fetch(`/api/upsert/${rtype}`, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload)});
@@ -365,7 +375,9 @@
         beneficiary_bank_swift: document.getElementById("b_beneficiary_bank_swift")?.value || "",
         intermediary_bank_name: document.getElementById("b_intermediary_bank_name")?.value || "",
         intermediary_bank_address: document.getElementById("b_intermediary_bank_address")?.value || "",
-        intermediary_bank_swift: document.getElementById("b_intermediary_bank_swift")?.value || ""
+        intermediary_bank_swift: document.getElementById("b_intermediary_bank_swift")?.value || "",
+        ifsc_code: document.getElementById("b_ifsc_code")?.value || "",
+        routing_code: document.getElementById("b_routing_code")?.value || ""
       };
       const extra = {
         date: document.getElementById("ttDate").value,
